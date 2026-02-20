@@ -1,3 +1,4 @@
+vim.g.maplocalleader = ' '
 require("config.lazy")
 local function map(mode, lhs, rhs, opts)
     local options = { noremap = true, silent = true }
@@ -10,7 +11,9 @@ local function map(mode, lhs, rhs, opts)
     vim.keymap.set(mode, lhs, rhs, options)
 end
 
+
 map("i", "fj", "<Esc>", {desc = "Exit insert mode"})
+map("n", "<Leader>b", "<Cmd>DapToggleBreakpoint<Cr>", {desc = "Toggle breakpoint"})
 
 
 vim.api.nvim_create_autocmd('FileType', {
@@ -35,3 +38,59 @@ require("referencer").setup({
 })
 
 vim.lsp.enable({"clangd"})
+
+local dap = require("dap")
+dap.adapters.gdb = {
+  type = "executable",
+  command = "gdb",
+  args = { "--interpreter=dap", "--eval-command", "set print pretty on" }
+}
+
+dap.configurations.c = {
+  {
+    name = "Launch",
+    type = "gdb",
+    request = "launch",
+    program = function()
+      return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+    end,
+    args = {}, -- provide arguments if needed
+    cwd = "${workspaceFolder}",
+    stopAtBeginningOfMainSubprogram = false,
+  },
+  {
+    name = "Select and attach to process",
+    type = "gdb",
+    request = "attach",
+    program = function()
+      return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+    end,
+    pid = function()
+      local name = vim.fn.input('Executable name (filter): ')
+      return require("dap.utils").pick_process({ filter = name })
+    end,
+    cwd = '${workspaceFolder}'
+  },
+  {
+    name = 'Attach to gdbserver :1234',
+    type = 'gdb',
+    request = 'attach',
+    target = 'localhost:1234',
+    program = function()
+      return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+    end,
+    cwd = '${workspaceFolder}'
+  }
+}
+
+dap.configurations.cpp = dap.configurations.c
+test_var = 10
+
+
+function set_project_root()
+	local git_dir = vim.fn.system("git rev-parse --show-toplevel")
+	if string.match(git_dir, "fatal:.*") == nil then
+		local trimmed_dir = string.gsub(git_dir, "^%s*(.-)%s*$", "%1")
+		vim.api.nvim_set_current_dir(trimmed_dir)
+	end
+end
