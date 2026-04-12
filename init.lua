@@ -1,28 +1,6 @@
 vim.g.maplocalleader = ' '
 require("config.lazy")
-local function map(mode, lhs, rhs, opts)
-    local options = { noremap = true, silent = true }
-    if opts then
-        if opts.desc then
-            opts.desc = "keymaps.lua: " .. opts.desc
-        end
-        options = vim.tbl_extend('force', options, opts)
-    end
-    vim.keymap.set(mode, lhs, rhs, options)
-end
 
-
-map("i", "fj", "<Esc>", {desc = "Exit insert mode"})
-map("n", "<Leader>b", "<Cmd>DapToggleBreakpoint<Cr>", {desc = "Toggle breakpoint"})
-
-
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = { 'cpp' },
-  callback = function() vim.treesitter.start()
-	  vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-	  vim.wo[0][0].foldmethod = 'expr' 
-          end,
-})
 
 
 require("referencer").setup({
@@ -46,6 +24,8 @@ dap.adapters.gdb = {
   args = { "--interpreter=dap", "--eval-command", "set print pretty on" }
 }
 
+dap.defaults.fallback.auto_continue_if_many_stopped = false
+dap.defaults.cpp.auto_continue_if_many_stopped = false
 dap.configurations.c = {
   {
     name = "Launch",
@@ -86,11 +66,33 @@ dap.configurations.c = {
 dap.configurations.cpp = dap.configurations.c
 test_var = 10
 
+require("dapui").setup({
+	layouts = { {
+		elements = { {
+			id = "scopes",
+			size = 0.25
+		}, {
+			id = "breakpoints",
+			size = 0.25
+		}, {
+			id = "stacks",
+			size = 0.25
+		}, {
+			id = "watches",
+			size = 0.25
+		} },
+		position = "left",
+		size = 30
+	}, {
+		elements= {{
+			id = "repl",
+			size = 1.0
+		}},
+		position = "bottom",
+		size = 10
+	}}})
 
-function set_project_root()
-	local git_dir = vim.fn.system("git rev-parse --show-toplevel")
-	if string.match(git_dir, "fatal:.*") == nil then
-		local trimmed_dir = string.gsub(git_dir, "^%s*(.-)%s*$", "%1")
-		vim.api.nvim_set_current_dir(trimmed_dir)
-	end
-end
+
+
+	require("key_binding")
+	require("rooting")
